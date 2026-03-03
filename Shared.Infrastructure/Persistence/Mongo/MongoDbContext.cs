@@ -10,6 +10,7 @@ using Shared.Infrastructure.Persistence.Abstractions;
 
 public class MongoDbContext : IMongoDbContext
 {
+    private static readonly object _initLock = new();
     private static bool _serializersRegistered;
 
     private readonly MongoClient _mongoClient;
@@ -68,9 +69,12 @@ public class MongoDbContext : IMongoDbContext
 
     private static void RegisterSerializers()
     {
-        if (_serializersRegistered) return;
+        lock (_initLock)
+        {
+            if (_serializersRegistered) return;
 
-        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-        _serializersRegistered = true;
+            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            _serializersRegistered = true;
+        }
     }
 }
