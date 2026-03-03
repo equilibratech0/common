@@ -15,20 +15,20 @@ public class AzureServiceBusPublisher : IMessagePublisher, IAsyncDisposable
 
     public AzureServiceBusPublisher(IOptions<AzureServiceBusOptions> options, ILogger<AzureServiceBusPublisher> logger)
     {
-        _logger = logger;
+        //_logger = logger;
         
-        var asbOptions = options.Value;
+        //var asbOptions = options.Value;
         
-        _client = new ServiceBusClient(asbOptions.ConnectionString);
-        _sender = _client.CreateSender(asbOptions.TopicName);
+        //_client = new ServiceBusClient(asbOptions.ConnectionString);
+        //_sender = _client.CreateSender(asbOptions.TopicName);
         
-        _jsonSerializerOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
+        //_jsonSerializerOptions = new JsonSerializerOptions
+        //{
+        //    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        //    WriteIndented = false
+        //};
         
-        _logger.LogInformation("AzureServiceBusPublisher initialized for Topic: {TopicName}", asbOptions.TopicName);
+        //_logger.LogInformation("AzureServiceBusPublisher initialized for Topic: {TopicName}", asbOptions.TopicName);
     }
 
     public async Task PublishIntegrationEventAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : class
