@@ -1,31 +1,25 @@
 namespace Shared.Domain.Entities;
 
 using Shared.Domain.Exceptions;
+using Shared.Domain.Enums;
 
 public record Money
 {
     public decimal Amount { get; init; }
-    public string Currency { get; init; }
+    public Currency Currency { get; init; }
 
-    // Parameterless construct for ORM/Serialization ensuring non-null
-    private Money() 
-    { 
-        Currency = string.Empty; 
-    }
-
-    public Money(decimal amount, string currency)
+    // Parameterless construct for ORM/Serialization
+    private Money()
     {
-        if (string.IsNullOrWhiteSpace(currency))
-            throw new DomainException("Currency cannot be empty.");
-            
-        if (currency.Length != 3)
-            throw new DomainException("Currency must be a 3-letter ISO code.");
-
-        Amount = amount;
-        Currency = currency.ToUpperInvariant();
     }
 
-    public static Money Zero(string currency) => new(0, currency);
+    public Money(decimal amount, Currency currency)
+    {
+        Amount = amount;
+        Currency = currency;
+    }
+
+    public static Money Zero(Currency currency) => new(0, currency);
 
     public override string ToString() => $"{Amount} {Currency}";
 }
