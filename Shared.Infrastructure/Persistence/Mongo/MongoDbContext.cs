@@ -2,11 +2,16 @@ namespace Shared.Infrastructure.Persistence.Mongo;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Shared.Infrastructure.Persistence.Abstractions;
 
 public class MongoDbContext : IMongoDbContext
 {
+    private static bool _serializersRegistered;
+
     private readonly MongoClient _mongoClient;
     private readonly ILogger<MongoDbContext> _logger;
 
@@ -17,6 +22,8 @@ public class MongoDbContext : IMongoDbContext
     {
         _logger = logger;
         
+        RegisterSerializers();
+
         var mongoOptions = options.Value;
         
         _mongoClient = new MongoClient(mongoOptions.ConnectionString);
@@ -57,5 +64,13 @@ public class MongoDbContext : IMongoDbContext
             Session.Dispose();
             Session = null;
         }
+    }
+
+    private static void RegisterSerializers()
+    {
+        if (_serializersRegistered) return;
+
+        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+        _serializersRegistered = true;
     }
 }
