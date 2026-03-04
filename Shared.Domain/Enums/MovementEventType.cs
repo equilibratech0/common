@@ -36,5 +36,6 @@ public enum MovementEventType
     AdjustmentBalanceFeeCreated = 32,
     AdjustmentRebateFeeCreated = 33,
     RollingReserveReleased = 34,
-    AccountSettlement = 35
+    AccountSettlement = 35,
+    PartialPayment = 36
 }

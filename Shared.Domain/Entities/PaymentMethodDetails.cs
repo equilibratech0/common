@@ -4,16 +4,16 @@ using Shared.Domain.Enums;
 
 public record PaymentMethodDetails
 {
-    public string PaymentMethodId { get; init; } = string.Empty;
-    public string PaymentMethodName { get; init; } = string.Empty;
-    public PaymentMethodType Type { get; init; }
+    public string? PaymentMethodId { get; init; }
+    public string? ProviderName { get; init; }
+    public PaymentMethodType? Type { get; init; }
 
     public PaymentMethodDetails() { }
 
-    public PaymentMethodDetails(string paymentMethodId, string paymentMethodName, PaymentMethodType type)
+    public PaymentMethodDetails(string? paymentMethodId, string? providerName, PaymentMethodType? type)
     {
         PaymentMethodId = paymentMethodId;
-        PaymentMethodName = paymentMethodName;
+        ProviderName = providerName;
         Type = type;
     }
 }
