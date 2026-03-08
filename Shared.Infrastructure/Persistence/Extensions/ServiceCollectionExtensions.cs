@@ -16,4 +16,13 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    public static IServiceCollection AddMongoConfigInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<MongoDbConfigOptions>(configuration.GetSection(MongoDbConfigOptions.SectionName));
+
+        services.AddSingleton<IMongoDbConfigContext, MongoDbConfigContext>();
+
+        return services;
+    }
 }
