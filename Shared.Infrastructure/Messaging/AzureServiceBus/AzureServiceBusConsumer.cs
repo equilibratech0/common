@@ -72,35 +72,11 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
 
     private async Task MessageHandler(ProcessMessageEventArgs args)
     {
-        string body = args.Message.Body.ToString();
-        var eventName = args.Message.Subject ?? "Unknown";
-        
-        if (eventName != typeof(TEvent).Name)
-        {
-            await args.CompleteMessageAsync(args.Message);
-            return;
-        }
+        _logger.LogDebug("Received Message: {MessageId}", args.Message.MessageId);
 
-        _logger.LogDebug("Received Message: {MessageId} for Event: {EventName}", args.Message.MessageId, eventName);
+        var @event = JsonSerializer.Deserialize<TEvent>(args.Message.Body.ToString(), _jsonSerializerOptions)!;
 
-        try
-        {
-            var @event = JsonSerializer.Deserialize<TEvent>(body, _jsonSerializerOptions);
-            
-            if (@event is null)
-            {
-                _logger.LogWarning("Deserialized event was null. Moving to Dead Letter Queue.");
-                await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", "Resulting object was null");
-                return;
-            }
-
-            await ProcessWithRetryAsync(@event, args);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to deserialize message {MessageId}. Moving to Dead Letter Queue.", args.Message.MessageId);
-            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
-        }
+        await ProcessWithRetryAsync(@event, args);
     }
 
     private async Task ProcessWithRetryAsync(TEvent @event, ProcessMessageEventArgs args)
