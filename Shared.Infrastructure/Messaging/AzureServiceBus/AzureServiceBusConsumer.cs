@@ -9,6 +9,8 @@ using Shared.Infrastructure.Messaging.Abstractions;
 
 public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessageConsumer where TEvent : class
 {
+    private const int MaxRetries = 1;
+
     private readonly ServiceBusClient _client;
     private readonly ServiceBusProcessor _processor;
     private readonly ILogger<AzureServiceBusConsumer<TEvent>> _logger;
@@ -25,7 +27,8 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
         var processorOptions = new ServiceBusProcessorOptions
         {
             MaxConcurrentCalls = 10,
-            AutoCompleteMessages = false // We handle completion manually (Retry-safe / Dead-letter compatible)
+            AutoCompleteMessages = false,
+            PrefetchCount = 20
         };
 
         _processor = _client.CreateProcessor(asbOptions.TopicName, asbOptions.SubscriptionName, processorOptions);
@@ -72,10 +75,8 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
         string body = args.Message.Body.ToString();
         var eventName = args.Message.Subject ?? "Unknown";
         
-        // Basic routing filter to ensure we handle the correct event type
         if (eventName != typeof(TEvent).Name)
         {
-            // If we're subscribed to a topic with multiple event types, simply ignore others
             await args.CompleteMessageAsync(args.Message);
             return;
         }
@@ -86,24 +87,52 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
         {
             var @event = JsonSerializer.Deserialize<TEvent>(body, _jsonSerializerOptions);
             
-            if (@event != null)
-            {
-                await ProcessMessageAsync(@event, args.CancellationToken);
-                
-                // Complete message if processed successfully
-                await args.CompleteMessageAsync(args.Message);
-            }
-            else
+            if (@event is null)
             {
                 _logger.LogWarning("Deserialized event was null. Moving to Dead Letter Queue.");
                 await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", "Resulting object was null");
+                return;
             }
+
+            await ProcessWithRetryAsync(@event, args);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
-            _logger.LogError(ex, "Error processing message {MessageId}. Moving to Dead Letter Queue.", args.Message.MessageId);
-            // Move to DLQ on concrete processing failures for review
-            await args.DeadLetterMessageAsync(args.Message, "ProcessingError", ex.Message);
+            _logger.LogError(ex, "Failed to deserialize message {MessageId}. Moving to Dead Letter Queue.", args.Message.MessageId);
+            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
+        }
+    }
+
+    private async Task ProcessWithRetryAsync(TEvent @event, ProcessMessageEventArgs args)
+    {
+        int attempt = 0;
+
+        while (true)
+        {
+            try
+            {
+                attempt++;
+                await ProcessMessageAsync(@event, args.CancellationToken);
+                await args.CompleteMessageAsync(args.Message);
+                return;
+            }
+            catch (Exception ex) when (attempt <= MaxRetries)
+            {
+                _logger.LogWarning(ex,
+                    "Error processing message {MessageId} on attempt {Attempt}/{MaxAttempts}. Retrying...",
+                    args.Message.MessageId, attempt, MaxRetries + 1);
+
+                await Task.Delay(500 * attempt, args.CancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error processing message {MessageId} after {Attempts} attempts. Moving to Dead Letter Queue.",
+                    args.Message.MessageId, attempt);
+
+                await args.DeadLetterMessageAsync(args.Message, "ProcessingError", ex.Message);
+                return;
+            }
         }
     }
 
@@ -115,6 +144,5 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
         return Task.CompletedTask;
     }
 
-    // Abstract method that consumers in the bounded contexts must implement
     protected abstract Task ProcessMessageAsync(TEvent @event, CancellationToken cancellationToken);
 }
