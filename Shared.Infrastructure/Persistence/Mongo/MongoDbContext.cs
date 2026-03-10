@@ -2,17 +2,11 @@ namespace Shared.Infrastructure.Persistence.Mongo;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Shared.Infrastructure.Persistence.Abstractions;
-using Domain = Shared.Domain;
 
 public class MongoDbContext : IMongoDbContext
 {
-    private static bool _serializersRegistered;
-
     private readonly MongoClient _mongoClient;
     private readonly ILogger<MongoDbContext> _logger;
 
@@ -22,14 +16,14 @@ public class MongoDbContext : IMongoDbContext
     public MongoDbContext(IOptions<MongoDbOptions> options, ILogger<MongoDbContext> logger)
     {
         _logger = logger;
-        
-        RegisterSerializers();
+
+        MongoSerializerConfig.Register();
 
         var mongoOptions = options.Value;
-        
+
         _mongoClient = new MongoClient(mongoOptions.ConnectionString);
         Database = _mongoClient.GetDatabase(mongoOptions.DatabaseName);
-        
+
         _logger.LogInformation("MongoDbContext initialized for database: {DatabaseName}", mongoOptions.DatabaseName);
     }
 
@@ -64,40 +58,6 @@ public class MongoDbContext : IMongoDbContext
             await Session.AbortTransactionAsync(cancellationToken);
             Session.Dispose();
             Session = null;
-        }
-    }
-
-    private static void RegisterSerializers()
-    {
-        if (_serializersRegistered) return;
-
-        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-
-        RegisterClassMaps();
-
-        _serializersRegistered = true;
-    }
-
-    private static void RegisterClassMaps()
-    {
-        RegisterClassMap<Domain.Entities.User>();
-        RegisterClassMap<Domain.Entities.Account>();
-        RegisterClassMap<Domain.Entities.Company>();
-        RegisterClassMap<Domain.Entities.Subscription>();
-        RegisterClassMap<Domain.Entities.UserAccount>();
-        RegisterClassMap<Domain.Entities.TransactionIngestionModel>();
-        RegisterClassMap<Domain.Entities.Amount>();
-    }
-
-    private static void RegisterClassMap<T>()
-    {
-        if (!BsonClassMap.IsClassMapRegistered(typeof(T)))
-        {
-            BsonClassMap.RegisterClassMap<T>(cm =>
-            {
-                cm.AutoMap();
-                cm.SetIgnoreExtraElements(true);
-            });
         }
     }
 }
