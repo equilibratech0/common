@@ -7,6 +7,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Shared.Infrastructure.Persistence.Abstractions;
+using Domain = Shared.Domain;
 
 public class MongoDbConfigContext : IMongoDbConfigContext
 {
@@ -32,6 +33,27 @@ public class MongoDbConfigContext : IMongoDbConfigContext
         if (_serializersRegistered) return;
 
         BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+
+        RegisterClassMap<Domain.Entities.User>();
+        RegisterClassMap<Domain.Entities.Account>();
+        RegisterClassMap<Domain.Entities.Company>();
+        RegisterClassMap<Domain.Entities.Subscription>();
+        RegisterClassMap<Domain.Entities.UserAccount>();
+        RegisterClassMap<Domain.Entities.TransactionIngestionModel>();
+        RegisterClassMap<Domain.Entities.Amount>();
+
         _serializersRegistered = true;
+    }
+
+    private static void RegisterClassMap<T>()
+    {
+        if (!BsonClassMap.IsClassMapRegistered(typeof(T)))
+        {
+            BsonClassMap.RegisterClassMap<T>(cm =>
+            {
+                cm.AutoMap();
+                cm.SetIgnoreExtraElements(true);
+            });
+        }
     }
 }
