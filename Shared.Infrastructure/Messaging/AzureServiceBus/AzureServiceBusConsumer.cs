@@ -31,7 +31,10 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
             PrefetchCount = 20
         };
 
-        _processor = _client.CreateProcessor(asbOptions.TopicName, asbOptions.SubscriptionName, processorOptions);
+        var useQueue = string.IsNullOrWhiteSpace(asbOptions.SubscriptionName);
+        _processor = useQueue
+            ? _client.CreateProcessor(asbOptions.TopicName, processorOptions)
+            : _client.CreateProcessor(asbOptions.TopicName, asbOptions.SubscriptionName, processorOptions);
 
         _processor.ProcessMessageAsync += MessageHandler;
         _processor.ProcessErrorAsync += ErrorHandler;
@@ -41,8 +44,11 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        logger.LogInformation("AzureServiceBusConsumer initialized for Topic: {Topic}, Subscription: {Subscription}", 
-            asbOptions.TopicName, asbOptions.SubscriptionName);
+        if (useQueue)
+            logger.LogInformation("AzureServiceBusConsumer initialized for Queue: {Queue}", asbOptions.TopicName);
+        else
+            logger.LogInformation("AzureServiceBusConsumer initialized for Topic: {Topic}, Subscription: {Subscription}", 
+                asbOptions.TopicName, asbOptions.SubscriptionName);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
