@@ -20,6 +20,8 @@ public static class MongoSerializerConfig
             if (_registered) return;
 
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.DateTime));
+            BsonSerializer.RegisterSerializer(new NullableSerializer<DateTimeOffset>(new DateTimeOffsetSerializer(BsonType.DateTime)));
 
             RegisterClassMap<User>();
             RegisterClassMap<Account>();
