@@ -21,7 +21,10 @@ public abstract class AzureServiceBusConsumer<TEvent> : IHostedService, IMessage
         _logger = logger;
         
         var asbOptions = options.Value;
-        
+
+        if (string.IsNullOrWhiteSpace(asbOptions.ConnectionString))
+            throw new InvalidOperationException("AzureServiceBus:ConnectionString is not configured. Set it via environment variable AzureServiceBus__ConnectionString.");
+
         _client = new ServiceBusClient(asbOptions.ConnectionString);
         
         var processorOptions = new ServiceBusProcessorOptions
