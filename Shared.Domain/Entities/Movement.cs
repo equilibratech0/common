@@ -10,7 +10,7 @@ public class Movement : AggregateRoot<MovementId>
     // Core financial details of the movement
     public Amount Amount { get; private set; }
     public string TransactionId { get; private set; } = null!;
-    public string? AccountId { get; private set; }
+    public string? AccountReference { get; private set; }
     public string? Country { get; private set; }
     public PaymentMethodDetails? PaymentMethod { get; private set; }
     public MerchantDetails? Merchant { get; private set; }
@@ -19,13 +19,13 @@ public class Movement : AggregateRoot<MovementId>
 
     protected Movement() { }
 
-    private Movement(MovementId id, MovementEventType eventType, Amount amount, string transactionId, string? accountId, string? country, PaymentMethodDetails? paymentMethod, MerchantDetails? merchant, string? description)
+    private Movement(MovementId id, MovementEventType eventType, Amount amount, string transactionId, string? accountReference, string? country, PaymentMethodDetails? paymentMethod, MerchantDetails? merchant, string? description)
     {
         Id = id;
         EventType = eventType;
         Amount = amount;
         TransactionId = transactionId;
-        AccountId = accountId;
+        AccountReference = accountReference;
         Country = country;
         PaymentMethod = paymentMethod;
         Merchant = merchant;
@@ -33,11 +33,11 @@ public class Movement : AggregateRoot<MovementId>
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
-    public static Movement Create(MovementEventType eventType, Amount amount, string transactionId, string? accountId, string? country, PaymentMethodDetails? paymentMethod, MerchantDetails? merchant = null, string? description = null)
+    public static Movement Create(MovementEventType eventType, Amount amount, string transactionId, string? accountReference, string? country, PaymentMethodDetails? paymentMethod, MerchantDetails? merchant = null, string? description = null)
     {
         if (amount == null)
             throw new DomainException("Amount cannot be null.");
 
-        return new Movement(MovementId.New(), eventType, amount, transactionId, accountId, country, paymentMethod, merchant, description);
+        return new Movement(MovementId.New(), eventType, amount, transactionId, accountReference, country, paymentMethod, merchant, description);
     }
 }
