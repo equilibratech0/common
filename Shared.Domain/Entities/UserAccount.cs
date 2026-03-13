@@ -3,13 +3,13 @@ namespace Shared.Domain.Entities;
 public class UserAccount
 {
     public Guid UserId { get; private set; }
-    public string AccountId { get; private set; } = null!;
+    public Guid AccountId { get; private set; }
 
     private UserAccount() { }
 
-    public UserAccount(Guid userId, string accountId)
+    public UserAccount(Guid userId, Guid accountId)
     {
         UserId = userId;
-        AccountId = accountId ?? throw new ArgumentNullException(nameof(accountId));
+        AccountId = accountId;
     }
 }
